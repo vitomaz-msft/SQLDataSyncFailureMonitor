@@ -15,6 +15,7 @@ After getting the SendGrid API Key you can use this button to deploy SQL Data Sy
 <br>
 <br>
 <br>
+
 ### Prerequisite - SendGrid account
 
 1. **We need to create a new SendGrid Email Delivery resource in Azure:**
