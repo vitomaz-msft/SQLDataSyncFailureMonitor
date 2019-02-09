@@ -1,0 +1,124 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "FunctionAppName": {
+            "type": "string"
+        },
+        "StorageAccountName": {
+            "type": "string"
+        },
+        "SQLDataSyncFailureMonitor_SyncDbServer": {
+            "type": "string"
+        },
+        "SQLDataSyncFailureMonitor_SyncDbDatabase": {
+            "type": "string"
+        },
+        "SQLDataSyncFailureMonitor_SyncDbUser": {
+            "type": "string"
+        },
+        "SQLDataSyncFailureMonitor_SyncDbPassword": {
+            "type": "string"
+        },
+        "SQLDataSyncFailureMonitor_NotifyAddress": {
+            "type": "string"
+        },
+        "SendGridAPIKey": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[parameters('StorageAccountName')]",
+            "apiVersion": "2018-07-01",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "Storage"
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "kind": "functionapp",
+            "name": "[parameters('FunctionAppName')]",
+            "apiVersion": "2018-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName'))]"
+            ],
+            "properties": {
+                "name": "[parameters('FunctionAppName')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "FUNCTIONS_WORKER_RUNTIME",
+                            "value": "dotnet"
+                        },
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('StorageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~2"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('StorageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('StorageAccountName')), '2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTSHARE",
+                            "value": "[concat(toLower(parameters('FunctionAppName')), toLower(uniqueString(resourceGroup().id)))]"
+                        },
+                        {
+                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                            "value": "8.11.1"
+                        },
+                        {
+                            "name": "SQLDataSyncFailureMonitor_SyncDbServer",
+                            "value": "[parameters('SQLDataSyncFailureMonitor_SyncDbServer')]"
+                        },
+                        {
+                            "name": "SQLDataSyncFailureMonitor_SyncDbDatabase",
+                            "value": "[parameters('SQLDataSyncFailureMonitor_SyncDbDatabase')]"
+                        },
+                        {
+                            "name": "SQLDataSyncFailureMonitor_SyncDbUser",
+                            "value": "[parameters('SQLDataSyncFailureMonitor_SyncDbUser')]"
+                        },
+                        {
+                            "name": "SQLDataSyncFailureMonitor_SyncDbPassword",
+                            "value": "[parameters('SQLDataSyncFailureMonitor_SyncDbPassword')]"
+                        },
+                        {
+                            "name": "SendGridAPIKey",
+                            "value": "[parameters('SendGridAPIKey')]"
+                        },
+                        {
+                            "name": "SQLDataSyncFailureMonitor_NotifyAddress",
+                            "value": "[parameters('SQLDataSyncFailureMonitor_NotifyAddress')]"
+                        }
+                    ]
+                },
+                "clientAffinityEnabled": false,
+                "reserved": false
+            },
+            "resources": [
+                {
+                    "apiVersion": "2018-11-01",
+                    "name": "web",
+                    "type": "sourcecontrols",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites/', parameters('FunctionAppName'))]"
+                    ],
+                    "properties": {
+                        "RepoUrl": "https://github.com/vitomaz-msft/SQLDataSyncFailureMonitor",
+                        "branch": "master",
+                        "IsManualIntegration": "false"
+                    }
+                }
+            ]
+        }
+    ]
+}
